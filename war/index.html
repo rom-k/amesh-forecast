@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>amesh-forecast</title>
+<style type="text/css">
+html {
+	height: 100%;
+}
+
+body {
+	height: 100%;
+	margin: 0px;
+	padding: 0px;
+}
+
+.div_button {
+	background-color: white;
+	border-style: solid;
+	border-width: 2px;
+	cursor: pointer;
+	text-align: center;
+	float: left;
+	font-family: Arial, sans-serif;
+	font-size: 12px;
+	padding-left: 4px;
+	padding-right: 4px;
+}
+</style>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<script type="text/javascript"
+	src="http://maps.google.com/maps/api/js?sensor=false">
+	
+</script>
+<script type="text/javascript">
+	//<![CDATA[
+	var showing;
+	var map;
+	var png;
+
+	function getAjax() {
+		var req;
+		try {
+			req = new XMLHttpRequest()
+		} catch (e) {
+			try {
+				req = new ActiveXObject('Msxml2.XMLHTTP');
+			} catch (e) {
+				req = new ActiveXObject('Microsoft.XMLHTTP');
+			}
+		}
+		return req;
+	}
+
+	function MinControl(controlDiv, map) {
+		controlDiv.style.padding = '5px';
+
+		var div1 = document.createElement('div');
+		div1.className = 'div_button';
+		div1.innerHTML = '-5 min';
+		google.maps.event.addDomListener(div1, 'click', function() {
+			request_png(showing, -5);
+		});
+		controlDiv.appendChild(div1);
+
+		var sp1 = document.createElement("div");
+		sp1.style.float = 'left';
+		sp1.innerHTML = '&nbsp;';
+		controlDiv.appendChild(sp1);
+
+		var div2 = document.createElement('div');
+		div2.className = 'div_button';
+		div2.innerHTML = 'reload';
+		google.maps.event.addDomListener(div2, 'click', function() {
+			request_png();
+		});
+		controlDiv.appendChild(div2);
+
+		var sp2 = document.createElement("div");
+		sp2.style.float = 'left';
+		sp2.innerHTML = '&nbsp;';
+		controlDiv.appendChild(sp2);
+
+		var div3 = document.createElement('div');
+		div3.className = 'div_button';
+		div3.innerHTML = '+5 min';
+		google.maps.event.addDomListener(div3, 'click', function() {
+			request_png(showing, 5);
+		});
+		controlDiv.appendChild(div3);
+	}
+
+	function load() {
+		var tokyoSt = new google.maps.LatLng(35.681382, 139.766084);
+		var mapopt = {
+			zoom : 9,
+			center : tokyoSt,
+			mapTypeId : google.maps.MapTypeId.ROADMAP,
+			streetViewControl : false,
+		};
+		map = new google.maps.Map(document.getElementById("map_canvas"), mapopt);
+
+		var minControlDiv = document.createElement('div');
+		var minControl = new MinControl(minControlDiv, map);
+		map.controls[google.maps.ControlPosition.BOTTOM_CENTER]
+				.push(minControlDiv);
+
+		request_png();
+	}
+
+	function request_png(datetime, add) {
+		if (datetime && add) {
+			var dd = new Date(parseInt(datetime.substr(0, 4)),
+					parseInt(datetime.substr(4, 2)) - 1, parseInt(datetime
+							.substr(6, 2)), parseInt(datetime.substr(8, 2)),
+					parseInt(datetime.substr(10, 2)));
+			dd.setTime(dd.getTime() + add * 60 * 1000);
+			datetime = '' + ('0' + dd.getFullYear()).slice(-4)
+					+ ('0' + (dd.getMonth() + 1)).slice(-2)
+					+ ('0' + dd.getDate()).slice(-2)
+					+ ('0' + dd.getHours()).slice(-2)
+					+ ('0' + dd.getMinutes()).slice(-2);
+		}
+		var ajax = getAjax();
+		ajax.onreadystatechange = function() {
+			if (ajax.readyState == 4 && ajax.status == 200) {
+				if (!datetime) {
+					reload_png(ajax.responseText.slice(-12));
+				} else {
+					if (ajax.responseText.indexOf(datetime) >= 0) {
+						reload_png(datetime);
+					} else {
+						alert("no image for " + datetime);
+					}
+				}
+			}
+		}
+		ajax.open('GET', 'datetimes', true);
+		ajax.send(null);
+	}
+
+	function reload_png(datetime) {
+		if (datetime == showing) {
+			return;
+		}
+		if (png != null) {
+			png.setMap(null);
+			png = null;
+		}
+		var bounds = new google.maps.LatLngBounds(new google.maps.LatLng(
+				35.115556, 138.39928), new google.maps.LatLng(36.225442,
+				140.54820));
+		png = new google.maps.GroundOverlay("./" + datetime + ".png", bounds);
+		png.setMap(map);
+		showing = datetime;
+	}
+	//]]>
+</script>
+</head>
+<body onload="load()">
+	<div id="map_canvas" style="width: 100%; height: 100%"></div>
+</body>
+</html>
