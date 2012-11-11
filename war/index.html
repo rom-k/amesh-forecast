@@ -35,7 +35,11 @@ body {
 	//<![CDATA[
 	var showing;
 	var map;
-	var png;
+	var gif;
+	var frame;
+	var bounds = new google.maps.LatLngBounds(new google.maps.LatLng(
+			35.115556, 138.39928), new google.maps.LatLng(36.225442,
+			140.54820));
 
 	function getAjax() {
 		var req;
@@ -58,7 +62,7 @@ body {
 		div1.className = 'div_button';
 		div1.innerHTML = '-5 min';
 		google.maps.event.addDomListener(div1, 'click', function() {
-			request_png(showing, -5);
+			request_gif(showing, -5);
 		});
 		controlDiv.appendChild(div1);
 
@@ -71,7 +75,7 @@ body {
 		div2.className = 'div_button';
 		div2.innerHTML = 'reload';
 		google.maps.event.addDomListener(div2, 'click', function() {
-			request_png();
+			request_gif();
 		});
 		controlDiv.appendChild(div2);
 
@@ -84,7 +88,7 @@ body {
 		div3.className = 'div_button';
 		div3.innerHTML = '+5 min';
 		google.maps.event.addDomListener(div3, 'click', function() {
-			request_png(showing, 5);
+			request_gif(showing, 5);
 		});
 		controlDiv.appendChild(div3);
 	}
@@ -104,10 +108,13 @@ body {
 		map.controls[google.maps.ControlPosition.BOTTOM_CENTER]
 				.push(minControlDiv);
 
-		request_png();
+		frame = new google.maps.GroundOverlay("./frame.gif", bounds);
+		frame.setMap(map);
+
+		request_gif();
 	}
 
-	function request_png(datetime, add) {
+	function request_gif(datetime, add) {
 		if (datetime && add) {
 			var dd = new Date(parseInt(datetime.substr(0, 4)),
 					parseInt(datetime.substr(4, 2)) - 1, parseInt(datetime
@@ -124,10 +131,10 @@ body {
 		ajax.onreadystatechange = function() {
 			if (ajax.readyState == 4 && ajax.status == 200) {
 				if (!datetime) {
-					reload_png(ajax.responseText.slice(-12));
+					reload_gif(ajax.responseText.slice(-12));
 				} else {
 					if (ajax.responseText.indexOf(datetime) >= 0) {
-						reload_png(datetime);
+						reload_gif(datetime);
 					} else {
 						alert("no image for " + datetime);
 					}
@@ -138,19 +145,17 @@ body {
 		ajax.send(null);
 	}
 
-	function reload_png(datetime) {
+	function reload_gif(datetime) {
 		if (datetime == showing) {
 			return;
 		}
-		if (png != null) {
-			png.setMap(null);
-			png = null;
+		if (gif != null) {
+			gif.setMap(null);
+			gif = null;
 		}
-		var bounds = new google.maps.LatLngBounds(new google.maps.LatLng(
-				35.115556, 138.39928), new google.maps.LatLng(36.225442,
-				140.54820));
-		png = new google.maps.GroundOverlay("./" + datetime + ".png", bounds);
-		png.setMap(map);
+		gif = new google.maps.GroundOverlay("./" + datetime + ".gif", bounds);
+		gif.setOpacity(0.5);
+		gif.setMap(map);
 		showing = datetime;
 	}
 	//]]>

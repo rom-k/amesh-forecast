@@ -1,6 +1,6 @@
 package ameshforecast;
 
-import ameshforecast.Pngdat;
+import ameshforecast.Gifdat;
 import ameshforecast.PMF;
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -86,18 +86,18 @@ public class Fetchdata extends HttpServlet {
 		/* get_list_PMF */
 		log.info("fetch : get_list_PMF");
 		HashMap<String, Integer> mapPMF = new HashMap<String, Integer>();
-		Query query = pm.newQuery(ameshforecast.Pngdat.class);
+		Query query = pm.newQuery(ameshforecast.Gifdat.class);
 		try {
 			@SuppressWarnings("unchecked")
-			List<Pngdat> results = (List<Pngdat>) query.execute();
+			List<Gifdat> results = (List<Gifdat>) query.execute();
 			String out = "";
 			if (results.iterator().hasNext()) {
-				for (Pngdat png : results) {
-					if (!mapWeb.containsKey(png.getFilename())) {
-						list.add(png.getFilename());
+				for (Gifdat gif : results) {
+					if (!mapWeb.containsKey(gif.getFilename())) {
+						list.add(gif.getFilename());
 					}
-					mapPMF.put(png.getFilename(), 0);
-					out += png.getFilename() + ",";
+					mapPMF.put(gif.getFilename(), 0);
+					out += gif.getFilename() + ",";
 				}
 			}
 			log.info("fetch : get_list_PMF : " + out);
@@ -109,20 +109,30 @@ public class Fetchdata extends HttpServlet {
 		/* get_new */
 		log.info("fetch : get_new");
 		Collections.sort(list);
-		ImagesService imageSvc = ImagesServiceFactory.getImagesService();
+//		ImagesService imageSvc = ImagesServiceFactory.getImagesService();
 		try {
-			Image frame = getImage("/frame.png");
+//			Image frame = getImage("/frame.png");
 			for (int i = 0; i < list.size(); i++) {
 				String filename = list.get(i);
 				if (mapWeb.containsKey(filename) && !mapPMF.containsKey(filename)) {
-					log.info("fetch : get_new : " + filename);
-					Image image = getImage("http://tokyo-ame.jwa.or.jp/mesh/100/" + filename + ".gif");
-					List<Composite> composites = new ArrayList<Composite>();
-					composites.add(ImagesServiceFactory.makeComposite(image, 0, 0, (float)0.5, Composite.Anchor.TOP_LEFT));
-					composites.add(ImagesServiceFactory.makeComposite(frame, 0, 0, 1, Composite.Anchor.TOP_LEFT));
-					Image mixed=imageSvc.composite(composites, image.getWidth(), image.getHeight(), 0);
-					Blob blobdata = new Blob(mixed.getImageData());
-					Pngdat gifdata = new Pngdat(filename, blobdata);
+//					log.info("fetch : get_new : " + filename);
+//					Image image = getImage("http://tokyo-ame.jwa.or.jp/mesh/100/" + filename + ".gif");
+//					List<Composite> composites = new ArrayList<Composite>();
+//					composites.add(ImagesServiceFactory.makeComposite(image, 0, 0, (float)0.5, Composite.Anchor.TOP_LEFT));
+//					composites.add(ImagesServiceFactory.makeComposite(frame, 0, 0, 1, Composite.Anchor.TOP_LEFT));
+//					Image mixed=imageSvc.composite(composites, image.getWidth(), image.getHeight(), 0);
+//					Blob blobdata = new Blob(mixed.getImageData());
+					url = new URL("http://tokyo-ame.jwa.or.jp/mesh/100/" + filename + ".gif");
+					InputStream fin = url.openStream();
+					ByteArrayOutputStream bout = new ByteArrayOutputStream();
+					int len = 0;
+					byte[] buf = new byte[1024];
+					while ((len = fin.read(buf)) != -1) {
+						bout.write(buf, 0, len);
+					}
+					byte[] bydata = bout.toByteArray();
+					Blob blobdata = new Blob(bydata);
+					Gifdat gifdata = new Gifdat(filename, blobdata);
 					pm.makePersistent(gifdata);
 				}
 			}
@@ -137,8 +147,7 @@ public class Fetchdata extends HttpServlet {
 		for (int i = 0; i < iremove; i++) {
 			String filename = list.get(i);
 			try {
-//				Key key = KeyFactory.createKey(Gifdat.class.getSimpleName(), filename);
-				Pngdat gifdata = pm.getObjectById(Pngdat.class, filename);
+				Gifdat gifdata = pm.getObjectById(Gifdat.class, filename);
 				pm.deletePersistent(gifdata);
 				log.info("fetch : remove_old : " + filename);
 			} catch (Exception e) {
