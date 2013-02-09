@@ -117,9 +117,11 @@ body {
 	function request_gif(datetime, add) {
 		if (datetime && add) {
 			var dd = new Date(parseInt(datetime.substr(0, 4)),
-					parseInt(datetime.substr(4, 2)) - 1, parseInt(datetime
-							.substr(6, 2)), parseInt(datetime.substr(8, 2)),
-					parseInt(datetime.substr(10, 2)));
+					parseInt(datetime.substr(4, 2),10) - 1,
+					parseInt(datetime.substr(6, 2),10),
+					parseInt(datetime.substr(8, 2),10),
+					parseInt(datetime.substr(10, 2),10),
+					0);
 			dd.setTime(dd.getTime() + add * 60 * 1000);
 			datetime = '' + ('0' + dd.getFullYear()).slice(-4)
 					+ ('0' + (dd.getMonth() + 1)).slice(-2)
