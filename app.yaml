@@ -13,12 +13,13 @@ handlers:
   static_files: static/frame.gif
   upload: static/frame\.gif
 
+- url: /
+  static_files: static/index.html
+  upload: static/index\.html
+
 - url: /(.*\.html)
   static_files: static/\1
   upload: static/(.*\.html)
-
-- url: /static
-  static_dir: static
 
 - url: .*
   script: ameshforecast.app

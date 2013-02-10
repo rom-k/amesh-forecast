@@ -20,7 +20,7 @@ class Gifdat(db.Model):
 
 class Fetchdata(webapp2.RequestHandler):
     def get(self):
-        logging.info("fetch : called : " + self.request.url)
+        logging.debug("fetch : called : " + self.request.url)
 
         # Connect to tokyo-amesh site to get date&time list.
         amesh_url1 = "http://tokyo-ame.jwa.or.jp/scripts/mesh_index.js"
@@ -28,10 +28,12 @@ class Fetchdata(webapp2.RequestHandler):
 
         # Raise exception when access error occured.
         if result.status_code != 200:
+            logging.warn("fetch : fetching amesh_url1 failed : " +
+                         str(result.status_code))
             raise
 
         res = result.content.rstrip()
-        logging.info("fetch : result.content : " + res)
+        logging.debug("fetch : result.content : " + res)
 
         # Use string.translate to remove chars except for "1234567890,".
         allchars = string.maketrans('', '')
@@ -41,14 +43,14 @@ class Fetchdata(webapp2.RequestHandler):
         # Get date&time list from datastore.
         gifdats = db.GqlQuery("SELECT * FROM Gifdat")
         db_datetimes = [x.filename for x in gifdats]
-        logging.info("fetch : db_datetimes : " + ','.join(db_datetimes))
+        logging.debug("fetch : db_datetimes : " + ','.join(db_datetimes))
 
         # Add new gif to datastore if not added yet.
         for datetime in amesh_datetimes:
             if datetime in db_datetimes:
                 continue
 
-            logging.info("fetch : add : " + datetime)
+            logging.debug("fetch : add : " + datetime)
             db_datetimes.append(datetime)
 
             # Get gif image from tokyo amesh site.
@@ -56,6 +58,8 @@ class Fetchdata(webapp2.RequestHandler):
                           datetime + ".gif")
             result = urlfetch.fetch(amesh_url2)
             if result.status_code != 200:
+                logging.warn("fetch : fetching amesh_url2 failed : " +
+                             str(result.status_code))
                 raise
 
             # Create new Gifdat instance and add to data store.
@@ -71,13 +75,13 @@ class Fetchdata(webapp2.RequestHandler):
         for gifdat in gifdats:
             datetime = gifdat.filename
             if datetime not in keep:
-                logging.info("fetch : remove : " + datetime)
+                logging.debug("fetch : remove : " + datetime)
                 gifdat.delete()
 
 
 class DateTimes(webapp2.RequestHandler):
     def get(self):
-        logging.info("datetimes : called : " + self.request.url)
+        logging.debug("datetimes : called : " + self.request.url)
 
         # Output date&time list for gifdat.
         gifdats = db.GqlQuery("SELECT * FROM Gifdat")
@@ -91,29 +95,33 @@ class DateTimes(webapp2.RequestHandler):
 
 class ShowGif(webapp2.RequestHandler):
     def get(self):
-        logging.info("showgif : called : " + self.request.url)
+        logging.debug("showgif : called : " + self.request.url)
 
         # Get date&time from URL.
         m = re.search("(?<=[\\\/])\d+(?=\.gif)", self.request.url)
         if m is None:
+            logging.warn("showgif : no matched datetime")
             self.error(404)
             return
         datetime = m.group(0)
 
         # Find gif from data store.
         query = "SELECT * FROM Gifdat WHERE filename = '" + datetime + "'"
-        logging.info("showgif : query : " + query)
+        logging.debug("showgif : query : " + query)
         gifdats = db.GqlQuery(query)
 
         # Show gif.
         for gifdat in gifdats:
-            logging.info("showgif : gifdat : " + gifdat.filename)
+            logging.debug("showgif : gifdat : " + gifdat.filename)
             self.response.headers['Content-Type'] = 'image/gif'
             self.response.write(gifdat.content)
             break
         else:
+            logging.warn("showgif : no matched datetime")
             self.error(404)
 
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 app = webapp2.WSGIApplication([
                               ('/fetch', Fetchdata),
