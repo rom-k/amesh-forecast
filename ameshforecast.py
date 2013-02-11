@@ -13,6 +13,10 @@ from google.appengine.api import urlfetch
 from google.appengine.ext import db
 
 
+class Giflist(db.Model):
+    filenames = db.StringListProperty()
+
+
 class Gifdat(db.Model):
     filename = db.StringProperty(required=True)
     content = db.BlobProperty()
@@ -41,8 +45,14 @@ class Fetchdata(webapp2.RequestHandler):
         amesh_datetimes = res.translate(allchars, delchars).split(",")
 
         # Get date&time list from datastore.
-        gifdats = db.GqlQuery("SELECT * FROM Gifdat")
-        db_datetimes = [x.filename for x in gifdats]
+        giflists = db.GqlQuery("SELECT * FROM Giflist")
+        giflist = giflists.get()
+        try:
+            db_datetimes = giflist.filenames
+        except:
+            giflist = Giflist()
+            gifdats = db.GqlQuery("SELECT * FROM Gifdat")
+            db_datetimes = [x.filename for x in gifdats]
         logging.debug("fetch : db_datetimes : " + ','.join(db_datetimes))
 
         # Add new gif to datastore if not added yet.
@@ -67,16 +77,22 @@ class Fetchdata(webapp2.RequestHandler):
             gifdat.content = db.Blob(result.content)
             gifdat.put()
 
-        # Remove old image from data store.
-        # (Keep 1 week = 60/5*24*7 data.)
+        # Keep data for 1 week = 60/5*24*7 data.
         db_datetimes.sort()
-        keep = db_datetimes[:2016]
-        gifdats = db.GqlQuery("SELECT * FROM Gifdat")
+        discard = db_datetimes[2016:]
+        db_datetimes = db_datetimes[:2016]
+
+        # Remove old image from data store.
+        gifdats = db.GqlQuery("SELECT * FROM Gifdat WHERE " +
+                              "filename IN ('" + "','".join(discard) + "')")
         for gifdat in gifdats:
             datetime = gifdat.filename
-            if datetime not in keep:
-                logging.debug("fetch : remove : " + datetime)
-                gifdat.delete()
+            logging.debug("fetch : remove : " + datetime)
+            gifdat.delete()
+
+        # Store list
+        giflist.filenames = db_datetimes
+        giflist.put()
 
 
 class DateTimes(webapp2.RequestHandler):
@@ -84,8 +100,8 @@ class DateTimes(webapp2.RequestHandler):
         logging.debug("datetimes : called : " + self.request.url)
 
         # Output date&time list for gifdat.
-        gifdats = db.GqlQuery("SELECT * FROM Gifdat")
-        datetimes = [x.filename for x in gifdats]
+        giflists = db.GqlQuery("SELECT * FROM Giflist")
+        datetimes = giflists.get().filenames
         datetimes.sort()
 #        self.response.headers['Content-Type'] = 'application/json'
 #        self.response.write(json.dumps(datetimes))
