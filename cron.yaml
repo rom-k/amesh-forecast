@@ -1,4 +1,4 @@
 cron:
-#- description: every minutes fetch
-#  url: /fetch
-#  schedule: every 1 minutes synchronized
+- description: every minutes fetch
+  url: /fetch
+  schedule: every 1 minutes synchronized
